@@ -59,6 +59,48 @@ public class ServiceTest
 	}
 	
 	@Test
+	public void testRecordLimit() throws Exception {
+	    
+	    List<ExternallyIdentifiableRecord> records = new ArrayList<ExternallyIdentifiableRecord>();
+
+        Attribute a1 = new Attribute("givenName", "Andrew");
+        Attribute a2 = new Attribute("surName", "Owen");
+        ExternallyIdentifiableRecord r1 = new ExternallyIdentifiableRecord(makeAttributes(a1, a2), "record1");
+
+        a1 = new Attribute("givenName", "Andruw"); // as in the Braves' outfielder
+        ExternallyIdentifiableRecord r2 = new ExternallyIdentifiableRecord(makeAttributes(a1, a2), "record2");
+
+        records.add(r1);
+        records.add(r2);
+
+        Set<AttributeParameters> attributeParametersSet = new HashSet<AttributeParameters>();
+        AttributeParameters ap = new AttributeParameters("givenName");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setThreshold(andrewThresholdValue - .01);
+        attributeParametersSet.add(ap);
+        ap = new AttributeParameters("surName");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setThreshold(andrewThresholdValue - .01);
+        attributeParametersSet.add(ap);
+
+        EntityResolutionResults results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet);
+        List<ExternallyIdentifiableRecord> returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        assertFalse(results.isRecordLimitExceeded());
+
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet, 2);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        assertFalse(results.isRecordLimitExceeded());
+        
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet, 1);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(2, returnRecords.size());
+        assertTrue(results.isRecordLimitExceeded());
+        
+	}
+	
+	@Test
 	public void testDeterminativeNonMerge() throws Exception
 	{
 

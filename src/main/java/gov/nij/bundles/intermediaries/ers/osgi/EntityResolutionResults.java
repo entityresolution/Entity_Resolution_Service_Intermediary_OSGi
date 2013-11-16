@@ -29,14 +29,20 @@ public class EntityResolutionResults {
 	
 	private List<RecordWrapper> records;
 	private Map<String, Set<AttributeStatistics>> statistics;
+	private boolean recordLimitExceeded;
 	
 	public EntityResolutionResults(List<RecordWrapper> records,
-			Map<String, Set<AttributeStatistics>> statistics) {
+			Map<String, Set<AttributeStatistics>> statistics, boolean recordLimitExceeded) {
 		this.records = records;
-		this.statistics = statistics;
+        this.statistics = statistics;
+        this.recordLimitExceeded = recordLimitExceeded;
 	}
 
-	public List<RecordWrapper> getRecords() {
+	public boolean isRecordLimitExceeded() {
+        return recordLimitExceeded;
+    }
+
+    public List<RecordWrapper> getRecords() {
 		return records;
 	}
 
