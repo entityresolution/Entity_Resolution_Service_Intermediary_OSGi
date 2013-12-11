@@ -88,21 +88,9 @@ public class EntityResolutionService {
             LOG.debug("In resolveEntities, recordWrappers=" + recordWrappers);
             Set<Record> inputRecords = new HashSet<Record>();
             List<ExternallyIdentifiableRecord> records = EntityResolutionConversionUtils.convertRecordWrappers(recordWrappers);
-            LOG.debug("In resolveEntities, records=" + records);
 
-            // Perform the deterministic Factors algorithm here
-            DeterministicRecordsWrapper drWrpper = deterministicAttributeMerge(records, attributeParameters);
-
-            List<ExternallyIdentifiableRecord> recordsThatAreNotMerged = drWrpper.getRecordsThatAreNotMerged();
-            List<ExternallyIdentifiableRecord> recordsThatAreDeterministicallyMerged = drWrpper.getRecordsThatAreDeterministicallyMerged();
-
-            for (Record r : recordsThatAreNotMerged) {
-                // Only add 'record r' that hasn't been merged
-                inputRecords.add(r);
-            }
-
-            LOG.debug("In resolveEntities, inputRecords to RSwoosh=" + inputRecords);
-
+            inputRecords.addAll(records);
+            
             Set<Record> rSwooshMerged = RSwoosh.execute(matcherMerger, inputRecords);
 
             LOG.debug("In resolveEntities, merged records from RSwoosh=" + rSwooshMerged);
@@ -113,9 +101,6 @@ public class EntityResolutionService {
                 }
                 returnRecords.add((ExternallyIdentifiableRecord) r);
             }
-
-            // Combine DF set with 'returnRecords'
-            returnRecords.addAll(recordsThatAreDeterministicallyMerged);
 
             returnRecordList = new ArrayList<ExternallyIdentifiableRecord>();
             returnRecordList.addAll(returnRecords);
@@ -145,203 +130,6 @@ public class EntityResolutionService {
                 ranks.add(rank);
             }
         }
-    }
-
-    DeterministicRecordsWrapper deterministicAttributeMerge(List<ExternallyIdentifiableRecord> records, Set<AttributeParameters> attributeParameters) {
-
-        DeterministicRecordsWrapper drWrapper = new DeterministicRecordsWrapper();
-
-        List<ExternallyIdentifiableRecord> recordsThatAreNotMerged = new ArrayList<ExternallyIdentifiableRecord>();
-        List<ExternallyIdentifiableRecord> recordsThatAreMerged = new ArrayList<ExternallyIdentifiableRecord>();
-
-        // Get the actual deterministic factors, We compare against this later
-        // in getDeterministicAttributeValueMap to see if the attribute is
-        // deterministic
-        Set<String> deterministicFactorsAttributeNames = getDeterminativeAttributeNames(attributeParameters);
-
-        if (deterministicFactorsAttributeNames.size() == 0) {
-            LOG.debug("There are no deterministic factors, return");
-            drWrapper.setRecordsThatAreNotMerged(records);
-            return drWrapper;
-        }
-
-        // Declare set in higher scope, we will add the external ID of any
-        // records we merged to this set
-        Set<String> deterministicallyMergedRecordsIDs = new HashSet<String>();
-
-        // Loop through all the records
-        for (ExternallyIdentifiableRecord extRecordOuter : records) {
-
-            // If we have already merged this record skip it
-            if (deterministicallyMergedRecordsIDs.contains(extRecordOuter.getExternalId())) {
-                continue;
-            }
-
-            Set<String> relatedIDs = new HashSet<String>();
-
-            if (!allDeterministicFactorsAreNull(deterministicFactorsAttributeNames, extRecordOuter)) {
-
-                HashMap<String, String> attributeValueMapOuter = getDeterministicAttributeValueMap(deterministicFactorsAttributeNames, extRecordOuter);
-
-                LOG.debug("DF attributes for record: " + extRecordOuter.getExternalId() + " : " + attributeValueMapOuter.toString());
-
-                // Loop through the inner loop and compare against the outer
-                // loop
-                for (ExternallyIdentifiableRecord extRecordInner : records) {
-                    if (extRecordOuter.equals(extRecordInner) || allDeterministicFactorsAreNull(deterministicFactorsAttributeNames, extRecordInner)) {
-                        continue;
-                    }
-
-                    HashMap<String, String> attributeValueMapInner = getDeterministicAttributeValueMap(deterministicFactorsAttributeNames, extRecordInner);
-
-                    if (compareMaps(attributeValueMapInner, attributeValueMapOuter)) {
-                        LOG.debug("THESE RECORDS ARE DETERMINISTICALLY IDENTICAL: " + extRecordOuter.getExternalId() + " and " + extRecordInner.getExternalId());
-                        relatedIDs.add(extRecordInner.getExternalId());
-                        deterministicallyMergedRecordsIDs.add(extRecordInner.getExternalId());
-                    }
-
-                }
-
-            } else {
-                LOG.debug("All deterministic factors are null, no deterministic merge");
-            }
-
-            if (allDeterministicFactorsAreNull(deterministicFactorsAttributeNames, extRecordOuter)) {
-                recordsThatAreNotMerged.add(extRecordOuter);
-            } else {
-                recordsThatAreMerged.add(extRecordOuter);
-            }
-
-            extRecordOuter.setRelatedIds(relatedIDs);
-
-        }
-
-        drWrapper.setRecordsThatAreDeterministicallyMerged(recordsThatAreMerged);
-        drWrapper.setRecordsThatAreNotMerged(recordsThatAreNotMerged);
-
-        return drWrapper;
-
-    }
-
-    private boolean allDeterministicFactorsAreNull(Set<String> deterministicFactorsAttributeNames, ExternallyIdentifiableRecord record) {
-
-        Map<String, Attribute> recordAttributeMap = (HashMap<String, Attribute>) record.getAttributes();
-
-        for (String key : recordAttributeMap.keySet()) {
-
-            Attribute attribute = recordAttributeMap.get(key);
-            String attributeName = attribute.getType();
-
-            if (deterministicFactorsAttributeNames.contains(attributeName)) {
-
-                Iterator<String> it = attribute.iterator();
-                if (it.hasNext() && !"".equals(it.next())) {
-                    return false;
-                }
-
-            }
-
-        }
-
-        return true;
-
-    }
-
-    /*
-     * This method compare two deterministic factor maps. If at anytime it finds a difference, it breaks and returns false
-     * 
-     * @param attributeValueMapInner
-     * 
-     * @param attributeValueMapOuter
-     * 
-     * @return
-     */
-    private boolean compareMaps(HashMap<String, String> attributeValueMapInner, HashMap<String, String> attributeValueMapOuter) {
-
-        boolean someNonNullIsUnequal = false;
-        boolean someNonNullIsEqual = false;
-
-        for (String key : attributeValueMapOuter.keySet()) {
-
-            String valueInner = attributeValueMapInner.get(key);
-            String valueOuter = attributeValueMapOuter.get(key);
-
-            if (valueInner != null && valueInner.equals(valueOuter)) {
-                someNonNullIsEqual = true;
-            }
-
-            if (valueInner != null && valueOuter != null && !valueInner.equals(valueOuter)) {
-                someNonNullIsUnequal = true;
-            }
-
-        }
-
-        return someNonNullIsEqual && !someNonNullIsUnequal;
-
-    }
-
-    /*
-     * This method will return a map of the deterministic factors for a particular record
-     * 
-     * @param deterministicFactorsAttributeNames
-     * 
-     * @param record
-     * 
-     * @return
-     */
-    private HashMap<String, String> getDeterministicAttributeValueMap(Set<String> deterministicFactorsAttributeNames, ExternallyIdentifiableRecord record) {
-
-        Map<String, Attribute> recordAttributeMap = (HashMap<String, Attribute>) record.getAttributes();
-
-        HashMap<String, String> attributeValueMap = new HashMap<String, String>();
-
-        for (String key : recordAttributeMap.keySet()) {
-
-            Attribute attribute = recordAttributeMap.get(key);
-
-            String attributeName = attribute.getType();
-
-            if (deterministicFactorsAttributeNames.contains(attributeName)) {
-
-                Iterator<String> it = attribute.iterator();
-
-                // We only expect to have a single value in this iterator
-                String attributeValue = it.hasNext() ? it.next() : null;
-
-                LOG.debug("Deterministic Attribute Name: " + attributeName + ", Attribute value: " + attributeValue);
-
-                attributeValueMap.put(attributeName, attributeValue);
-
-            }
-
-        }
-
-        return attributeValueMap;
-    }
-
-    /*
-     * This method will return a set of the names of values that are deterministic. We can later check this array in the deterministic factors algorithm to see what the deterministic factors are.
-     * 
-     * @param attributeParameters
-     * 
-     * @return
-     */
-    private HashSet<String> getDeterminativeAttributeNames(Set<AttributeParameters> attributeParameters) {
-
-        HashSet<String> deterministicFactorsAttributeName = new HashSet<String>();
-
-        for (AttributeParameters ap : attributeParameters) {
-            if (ap == null || ap.getAttributeName() == null || ap.getAlgorithmClassName() == null) {
-                throw new IllegalArgumentException("AttributeParameters object has a null object.");
-            }
-
-            if (ap.isDeterminative()) {
-                LOG.debug("determinative: " + ap.getAttributeName());
-                deterministicFactorsAttributeName.add(ap.getAttributeName());
-            }
-        }
-
-        return deterministicFactorsAttributeName;
     }
 
     private Map<String, Set<AttributeStatistics>> computeStatistics(List<ExternallyIdentifiableRecord> records, Set<AttributeParameters> attributeParameters) {
@@ -404,47 +192,103 @@ public class EntityResolutionService {
                     throw new IllegalArgumentException("AttributeParameters object has a null object.");
                 }
 
-                if (!ap.isDeterminative()) {
-                    StringDistanceScoreMatcher matcher = new StringDistanceScoreMatcher(ap.getAlgorithmClassName());
-                    matcher.init(ap.getThreshold());
-                    comparatorMap.put(ap.getAttributeName(), new ExistentialBooleanComparator(matcher));
-                }
+                StringDistanceScoreMatcher matcher = new StringDistanceScoreMatcher(ap.getAlgorithmClassName());
+                matcher.init(ap.getThreshold());
+                comparatorMap.put(ap.getAttributeName(), new ExistentialBooleanComparator(matcher));
             }
         }
 
+        private static final int MATCH = 1;
+        private static final int NO_MATCH = 2;
+        private static final int MATCH_INDETERMINATE = 3;
+
         protected boolean matchInternal(Record r1, Record r2) {
+
             Map<String, Attribute> r1attr = r1.getAttributes();
             Map<String, Attribute> r2attr = r2.getAttributes();
+
             if (!haveSameAttributes(r1attr, r2attr)) {
                 return false;
             }
-            boolean hasDeterminativeAttribute = false;
-            boolean cumulativeDeterminativeAttribute = true;
-            boolean stringDistanceResult = true;
+
+            int deterministicMatch = matchDeterministicAttributes(r1, r2);
+
+            if (deterministicMatch == MATCH_INDETERMINATE) {
+                LOG.debug("Indeterminate result from deterministic evaluation");
+                for (String s1 : comparatorMap.keySet()) {
+                    Attribute a1 = r1attr.get(s1);
+                    if (a1 == null) {
+                        LOG.warn("Record does not contain specified attribute " + s1 + ", record=" + r1);
+                    }
+                    Attribute a2 = r2attr.get(s1);
+                    if (a2 == null) {
+                        LOG.warn("Record does not contain specified attribute " + s1 + ", record=" + r2);
+                    }
+                    if (!attributeIsDeterminative(s1)) {
+                        LOG.debug("Non deterministic match evaluation on attribute " + s1);
+                        ExistentialBooleanComparator ebc = comparatorMap.get(s1);
+                        if (!ebc.attributesMatch(a1, a2)) {
+                            LOG.debug("Attribute a1=" + a1 + " and a2=" + a2 + " do not match, thus records do not match");
+                            return false;
+                        }
+                    }
+                }
+                LOG.debug("Records match");
+                return true;
+            }
+
+            return deterministicMatch == MATCH;
+
+        }
+
+        private int matchDeterministicAttributes(Record r1, Record r2) {
+            Map<String, Attribute> r1attr = r1.getAttributes();
+            Map<String, Attribute> r2attr = r2.getAttributes();
+            boolean r1AllNull = true;
+            boolean r2AllNull = true;
             for (String s1 : comparatorMap.keySet()) {
-                Attribute a1 = r1attr.get(s1);
-                if (a1 == null) {
-                    LOG.warn("Record does not contain specified attribute " + s1 + ", record=" + r1);
-                }
-                Attribute a2 = r2attr.get(s1);
-                if (a2 == null) {
-                    LOG.warn("Record does not contain specified attribute " + s1 + ", record=" + r2);
-                }
+
                 if (attributeIsDeterminative(s1)) {
-                    hasDeterminativeAttribute = true;
-                    cumulativeDeterminativeAttribute = cumulativeDeterminativeAttribute && identical(a1, a2);
-                }
-                ExistentialBooleanComparator ebc = comparatorMap.get(s1);
-                if (!ebc.attributesMatch(a1, a2)) {
-                    LOG.debug("Mismatched attributes a1=" + a1 + ", a2=" + a2);
-                    stringDistanceResult = false;
+                    LOG.debug("Evaluating deterministic attribute " + s1);
+                    Attribute a1 = r1attr.get(s1);
+                    boolean a1AllNull = attributeAllNull(a1);
+                    Attribute a2 = r2attr.get(s1);
+                    boolean a2AllNull = attributeAllNull(a2);
+
+                    if (!a1AllNull) {
+                        LOG.debug("Attribute a1=" + a1 + " is not all null");
+                        r1AllNull = false;
+                    }
+
+                    if (!a2AllNull) {
+                        LOG.debug("Attribute a2=" + a2 + " is not all null");
+                        r2AllNull = false;
+                    }
+
+                    if (!(a1AllNull || a2AllNull)) {
+                        if (!identical(a1, a2)) {
+                            LOG.debug("Records do not match due to unequal, non-null deterministic attributes");
+                            return NO_MATCH;
+                        }
+                    }
                 }
             }
-            if (hasDeterminativeAttribute) {
-                return cumulativeDeterminativeAttribute;
+            return (r1AllNull || r2AllNull) ? MATCH_INDETERMINATE : MATCH;
+        }
+
+        private boolean attributeAllNull(Attribute a) {
+            boolean ret = false;
+            if (a != null) {
+                Iterator<String> values = a.iterator();
+                boolean allNull = true;
+                while (values.hasNext() && allNull) {
+                    if (values.next() != null) {
+                        allNull = false;
+                    }
+                }
+                ret = allNull;
             }
-            LOG.debug("matchInternal returns " + stringDistanceResult);
-            return stringDistanceResult;
+            return ret;
         }
 
         private boolean attributeIsDeterminative(String s1) {

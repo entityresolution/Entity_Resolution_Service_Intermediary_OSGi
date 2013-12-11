@@ -15,7 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gov.nij.er;
+package gov.nij.er.test;
+
+import gov.nij.er.StringDistanceScoreMatcher;
 
 import java.util.*;
 
@@ -34,7 +36,7 @@ import serf.data.*;
  *      scores the attributes higher than its threshold
  *
  */
-public class ConfigurableMatcherMerger extends BasicMatcherMerger
+class ConfigurableMatcherMerger extends BasicMatcherMerger
 {
 	
 	private static final Log LOG = LogFactory.getLog( ConfigurableMatcherMerger.class );

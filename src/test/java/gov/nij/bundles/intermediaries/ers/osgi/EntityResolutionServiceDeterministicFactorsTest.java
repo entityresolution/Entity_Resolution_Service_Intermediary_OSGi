@@ -18,6 +18,7 @@
 package gov.nij.bundles.intermediaries.ers.osgi;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import gov.nij.bundles.intermediaries.ers.osgi.AttributeParameters;
 import gov.nij.bundles.intermediaries.ers.osgi.EntityResolutionConversionUtils;
@@ -28,6 +29,7 @@ import gov.nij.bundles.intermediaries.ers.osgi.ExternallyIdentifiableRecord;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +37,7 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import serf.data.Attribute;
@@ -51,26 +54,393 @@ public class EntityResolutionServiceDeterministicFactorsTest {
 
     private EntityResolutionService service;
 
-    private Set<AttributeParameters> attributeParametersSet;
+    private Set<AttributeParameters> simpleAttributeParameterSet;
+    private Set<AttributeParameters> realisticAttributeParameterSet;
+    private Set<AttributeParameters> oldTestsAttributeParameterSet;
 
     @Before
     public void setUp() throws Exception {
+
         service = new EntityResolutionService();
-        attributeParametersSet = new HashSet<AttributeParameters>();
-        AttributeParameters ap = new AttributeParameters("givenName");
+        
+        simpleAttributeParameterSet = new HashSet<AttributeParameters>();
+
+        AttributeParameters ap = new AttributeParameters("A1");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setDeterminative(true);
+        simpleAttributeParameterSet.add(ap);
+        
+        ap = new AttributeParameters("A2");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setDeterminative(true);
+        simpleAttributeParameterSet.add(ap);
+
+        ap = new AttributeParameters("A3");
         ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
         ap.setThreshold(0.8);
-        attributeParametersSet.add(ap);
+        simpleAttributeParameterSet.add(ap);
+
+        realisticAttributeParameterSet = new HashSet<AttributeParameters>();
+
+        ap = new AttributeParameters("SID");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setDeterminative(true);
+        realisticAttributeParameterSet.add(ap);
+        
+        ap = new AttributeParameters("FBI");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setDeterminative(true);
+        realisticAttributeParameterSet.add(ap);
+
+        ap = new AttributeParameters("LastName");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setThreshold(0.8);
+        realisticAttributeParameterSet.add(ap);
+
+        ap = new AttributeParameters("FirstName");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setThreshold(0.8);
+        realisticAttributeParameterSet.add(ap);
+
+        ap = new AttributeParameters("DOB");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setThreshold(0.8);
+        realisticAttributeParameterSet.add(ap);
+
+        oldTestsAttributeParameterSet = new HashSet<AttributeParameters>();
+        ap = new AttributeParameters("givenName");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setThreshold(0.8);
+        oldTestsAttributeParameterSet.add(ap);
 
         ap = new AttributeParameters("sid");
         ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
         ap.setDeterminative(true);
-        attributeParametersSet.add(ap);
+        oldTestsAttributeParameterSet.add(ap);
 
         ap = new AttributeParameters("ssn");
         ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
         ap.setDeterminative(true);
-        attributeParametersSet.add(ap);
+        oldTestsAttributeParameterSet.add(ap);
+    }
+    
+    @Test
+    public void testScenarioM1() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+    
+    @Test
+    public void testScenarioM2() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord("X", "Y", "Q", "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioM3() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord("X", "Y", null, "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioM4() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord(null, null, "Z", "record1"));
+        records.add(makeNewScenariosRecord(null, null, "Z", "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioM5() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord(null, "Y", "Z", "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioM6() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord(null, "Y", "Q", "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioM7() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord(null, null, "Z", "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioM8() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", null, "Z", "record1"));
+        records.add(makeNewScenariosRecord(null, null, "Z", "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioN1() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord("Q", "Y", "Z", "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(2, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioN2() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord(null, null, "Q", "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(2, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioN3() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", null, "Z", "record1"));
+        records.add(makeNewScenariosRecord(null, null, "Q", "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(2, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioN4() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord(null, null, "Z", "record1"));
+        records.add(makeNewScenariosRecord(null, null, "Q", "record2"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(2, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioTR1() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord("X", "Y", "Q", "record2"));
+        records.add(makeNewScenariosRecord("X", "Y", "P", "record3"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioTR2() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord("X", "Y", "Q", "record2"));
+        records.add(makeNewScenariosRecord(null, "Y", "P", "record3"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioTR3() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord("X", "Y", "Q", "record2"));
+        records.add(makeNewScenariosRecord(null, null, "P", "record3"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(2, returnRecords.size());
+        
+        for (ExternallyIdentifiableRecord r : returnRecords) {
+            if (!isEmpty(r.getAttribute("A1"))) {
+                assertEquals("record1", r.getExternalId());
+                assertTrue(r.getRelatedIds().contains("record2"));
+            }
+            else {
+                assertEquals("record3", r.getExternalId());
+            }
+        }
+        
+    }
+
+    @Test
+    public void testScenarioTR4() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord("X", "Y", "Q", "record2"));
+        records.add(makeNewScenariosRecord(null, null, "Q", "record3"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), simpleAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioTR5() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewRealWorldScenariosRecord("A123", "F987", "Smith", "Tom", "1/1/1970", "record1"));
+        records.add(makeNewRealWorldScenariosRecord("A123", "F987", "Jones", "Jerry", "2/1/1969", "record2"));
+        records.add(makeNewRealWorldScenariosRecord(null, null, "Jones", "Gerry", "12/11/1969", "record3"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), realisticAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    @Test
+    public void testScenarioTR6() throws Exception {
+
+        List<ExternallyIdentifiableRecord> records;
+        EntityResolutionResults results;
+        List<ExternallyIdentifiableRecord> returnRecords;
+
+        records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewRealWorldScenariosRecord("A123", null, "McCartney", "Paul", "6/18/1942", "record1"));
+        records.add(makeNewRealWorldScenariosRecord("A123", "F987", "Lennon", "John", "10/9/1940", "record2"));
+        records.add(makeNewRealWorldScenariosRecord(null, "F987", "Harrison", "George", "2/25/1943", "record3"));
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), realisticAttributeParameterSet);
+        returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(1, returnRecords.size());
+        
+    }
+
+    private boolean isEmpty(Attribute attribute) {
+        boolean ret = true;
+        if (attribute != null) {
+            Iterator<String> it = attribute.iterator();
+            while (it.hasNext() && ret) {
+                String next = it.next();
+                if (next != null && next.trim().length() > 0)
+                {
+                    ret = false;
+                }
+            }
+        }
+        return ret;
     }
 
     @Test
@@ -88,7 +458,7 @@ public class EntityResolutionServiceDeterministicFactorsTest {
         records.add(makeRecord("Andrew", null, "123456789", "record1"));
         records.add(makeRecord("Joe", null, "123456789", "record2"));
 
-        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet);
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), oldTestsAttributeParameterSet);
         returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
         assertEquals(1, returnRecords.size());
 
@@ -107,7 +477,7 @@ public class EntityResolutionServiceDeterministicFactorsTest {
         records.add(makeRecord("Andrew", null, "123456789", "record1"));
         records.add(makeRecord("Joe", "123", "123456789", "record2"));
 
-        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet);
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), oldTestsAttributeParameterSet);
         returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
         assertEquals(1, returnRecords.size());
 
@@ -138,7 +508,7 @@ public class EntityResolutionServiceDeterministicFactorsTest {
         records.add(makeRecord("Andrew", "123", "123456789", "record1"));
         records.add(makeRecord("Joe", "123", "123456789", "record2"));
 
-        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet);
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), oldTestsAttributeParameterSet);
         returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
         assertEquals(1, returnRecords.size()); // because all deterministic
                                                // factors are present and equal
@@ -157,7 +527,7 @@ public class EntityResolutionServiceDeterministicFactorsTest {
         records.add(makeRecord("Andrew", "123", "123456789", "record1"));
         records.add(makeRecord("Joe", "124", "123456789", "record2"));
 
-        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet);
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), oldTestsAttributeParameterSet);
         returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
         assertEquals(2, returnRecords.size()); // because one deterministic
                                                // factor (sid) is different
@@ -166,7 +536,7 @@ public class EntityResolutionServiceDeterministicFactorsTest {
         records.add(makeRecord("Andrew", "123", "123456789", "record1"));
         records.add(makeRecord("Andruw", "124", "123456789", "record2"));
 
-        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet);
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), oldTestsAttributeParameterSet);
         returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
         assertEquals(2, returnRecords.size()); // showing that even though ER
                                                // would normally merge these,
@@ -187,7 +557,7 @@ public class EntityResolutionServiceDeterministicFactorsTest {
         records.add(makeRecord("Andrew", null, null, "record1"));
         records.add(makeRecord("Andruw", null, null, "record2"));
 
-        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet);
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), oldTestsAttributeParameterSet);
         returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
         assertEquals(1, returnRecords.size()); // because we forward them on to
                                                // ER, and Andrew/Andruw is
@@ -197,7 +567,7 @@ public class EntityResolutionServiceDeterministicFactorsTest {
         records.add(makeRecord("Andrew", null, null, "record1"));
         records.add(makeRecord("Joe", null, null, "record2"));
 
-        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet);
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), oldTestsAttributeParameterSet);
         returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
         assertEquals(2, returnRecords.size()); // because we forward them on to
                                                // ER, and Andrew/Joe not close
@@ -219,86 +589,46 @@ public class EntityResolutionServiceDeterministicFactorsTest {
         records.add(makeRecord("Andruw", null, null, "record2"));
         records.add(makeRecord("Andruw", "124", "123456789", "record3"));
 
-        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet);
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), oldTestsAttributeParameterSet);
         returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
-        assertEquals(2, returnRecords.size()); // because we forward on records
-                                               // 1 and 2 to ER and they merge
-                                               // (Andrew/Andruw close enuf)
-                                               // and rec3 is separate because
-                                               // of det factors
+        
+//        note: prior to Dec 2013 refactoring, this would've resulted in 2 records
+//        because we forward on records
+//        1 and 2 to ER and they merge
+//        (Andrew/Andruw close enuf)
+//        and rec3 is separate because
+//        of det factors
+//        assertEquals(2, returnRecords.size());
+        
+        assertEquals(1, returnRecords.size());
 
         records = new ArrayList<ExternallyIdentifiableRecord>();
         records.add(makeRecord("Andrew", null, null, "record1"));
         records.add(makeRecord("Joe", null, null, "record2"));
         records.add(makeRecord("Andruw", "124", "123456789", "record3"));
 
-        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet);
+        results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), oldTestsAttributeParameterSet);
         returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
-        assertEquals(3, returnRecords.size()); // because we forward on records
-                                               // 1 and 2 to ER and they dont
-                                               // merge (Andrew/Joe not close
-                                               // enuf) and rec3 is separate
-                                               // because of det factors
+
+        // similarly, prior to Dec 2013 refactoring, this would've resulted in 3 records
+        // because we forward on records
+        // 1 and 2 to ER and they dont
+        // merge (Andrew/Joe not close
+        // enuf) and rec3 is separate
+        // because of det factors
+        // assertEquals(3, returnRecords.size());
+
+        assertEquals(2, returnRecords.size());
+        
 
     }
 
-    /**
-     * First confirm that the deterministally merged record set and then test the records that were not merged. After that, call the ER service so the RSwoosh ER implementation can run as well.
-     * 
-     * @throws Exception
-     */
-    @Test
-    public void testDeterministicAttributeMerge() throws Exception {
+    private ExternallyIdentifiableRecord makeNewRealWorldScenariosRecord(String sid, String fbi, String lastName, String firstName, String DOB, String recordId) {
+        return new ExternallyIdentifiableRecord(makeAttributes(new Attribute("SID", sid), new Attribute("FBI", fbi), new Attribute("LastName", lastName), new Attribute("FirstName", firstName), new Attribute("DOB", DOB)), recordId);
+    }
 
-        List<ExternallyIdentifiableRecord> records = new ArrayList<ExternallyIdentifiableRecord>();
-        records.add(makeRecord("Andrew", "123", "123456789", "record1"));
-        records.add(makeRecord("Andrew", "123", "123456789", "record2"));
-        records.add(makeRecord("Andrew", "124", "123456999", "record3"));
-        records.add(makeRecord("Andrew", "123", "123456789", "record4"));
-        records.add(makeRecord("Andrew", "124", "123456789", "record5"));
-        records.add(makeRecord("Andrew", "999", "999999999", "record6"));
-        records.add(makeRecord("Andrew", null, null, "record7"));
-
-        List<ExternallyIdentifiableRecord> mergedRecords = service.deterministicAttributeMerge(records, attributeParametersSet).getRecordsThatAreDeterministicallyMerged();
-        LOG.debug("Return records from deterministic attribute merge:" + mergedRecords);
-        assertEquals(4, mergedRecords.size());
-
-        // Loop through the records and make sure record1, record2, and record4
-        // are related
-        for (ExternallyIdentifiableRecord extRecord : mergedRecords) {
-            String recordID = extRecord.getExternalId();
-
-            Set<String> relatedIDs = extRecord.getRelatedIds();
-
-            if (recordID.equals("record1")) {
-                assertEquals(true, relatedIDs.contains("record2"));
-                assertEquals(true, relatedIDs.contains("record4"));
-                assertEquals(2, relatedIDs.size());
-            }
-
-            if (recordID.equals("record2")) {
-                assertEquals(true, relatedIDs.contains("record1"));
-                assertEquals(true, relatedIDs.contains("record4"));
-                assertEquals(2, relatedIDs.size());
-            }
-
-            if (recordID.equals("record4")) {
-                assertEquals(true, relatedIDs.contains("record1"));
-                assertEquals(true, relatedIDs.contains("record2"));
-                assertEquals(2, relatedIDs.size());
-            }
-        }
-
-        List<ExternallyIdentifiableRecord> recordsThatAreNotMerged = service.deterministicAttributeMerge(records, attributeParametersSet).getRecordsThatAreNotMerged();
-        assertEquals(1, recordsThatAreNotMerged.size()); // will only have non-merged records now if all values of det factors are null
-        ExternallyIdentifiableRecord extRecord = recordsThatAreNotMerged.toArray(new ExternallyIdentifiableRecord[] {})[0];
-        assertEquals("record7", extRecord.getExternalId());
-
-        // Now call the call 'resolveEntities' function
-        EntityResolutionResults results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), attributeParametersSet);
-        List<ExternallyIdentifiableRecord> returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
-        assertEquals(5, returnRecords.size());
-
+    private ExternallyIdentifiableRecord makeNewScenariosRecord(String a1, String a2, String a3, String recordId) {
+        return new ExternallyIdentifiableRecord(makeAttributes(new Attribute("A1", a1), new Attribute("A2", a2), new Attribute("A3", a3)), recordId);
     }
 
     private ExternallyIdentifiableRecord makeRecord(String givenName, String sid, String ssn, String recordId) {
