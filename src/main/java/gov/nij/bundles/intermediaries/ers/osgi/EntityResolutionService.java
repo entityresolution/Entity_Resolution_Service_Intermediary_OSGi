@@ -186,6 +186,7 @@ public class EntityResolutionService {
 
         public void init(Set<AttributeParameters> attributeParameters) throws Exception {
             this.attributeParameters = attributeParameters;
+            comparatorMap.clear();
             LOG.info("Initializing ERSMatcherMerger with parameters " + attributeParameters);
             for (AttributeParameters ap : attributeParameters) {
                 if (ap == null || ap.getAttributeName() == null || ap.getAlgorithmClassName() == null) {
