@@ -216,6 +216,7 @@ public class EntityResolutionService {
 
             if (deterministicMatch == MATCH_INDETERMINATE) {
                 LOG.debug("Indeterminate result from deterministic evaluation");
+                boolean nonDeterministicAttributeExists = false;
                 for (String s1 : comparatorMap.keySet()) {
                     Attribute a1 = r1attr.get(s1);
                     if (a1 == null) {
@@ -226,6 +227,7 @@ public class EntityResolutionService {
                         LOG.warn("Record does not contain specified attribute " + s1 + ", record=" + r2);
                     }
                     if (!attributeIsDeterminative(s1)) {
+                        nonDeterministicAttributeExists = true;
                         LOG.debug("Non deterministic match evaluation on attribute " + s1);
                         ExistentialBooleanComparator ebc = comparatorMap.get(s1);
                         if (!ebc.attributesMatch(a1, a2)) {
@@ -234,8 +236,8 @@ public class EntityResolutionService {
                         }
                     }
                 }
-                LOG.debug("Records match");
-                return true;
+                LOG.debug(nonDeterministicAttributeExists ? "Records match" : "Records do not match because the deterministic factors match was indeterminate, and there were no non-deterministic attributes");
+                return nonDeterministicAttributeExists;
             }
 
             return deterministicMatch == MATCH;

@@ -57,6 +57,7 @@ public class EntityResolutionServiceDeterministicFactorsTest {
     private Set<AttributeParameters> simpleAttributeParameterSet;
     private Set<AttributeParameters> realisticAttributeParameterSet;
     private Set<AttributeParameters> oldTestsAttributeParameterSet;
+    private Set<AttributeParameters> onlyDeterministicAttributeParameterSet;
 
     @Before
     public void setUp() throws Exception {
@@ -79,6 +80,18 @@ public class EntityResolutionServiceDeterministicFactorsTest {
         ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
         ap.setThreshold(0.8);
         simpleAttributeParameterSet.add(ap);
+
+        onlyDeterministicAttributeParameterSet = new HashSet<AttributeParameters>();
+
+        ap = new AttributeParameters("A1");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setDeterminative(true);
+        onlyDeterministicAttributeParameterSet.add(ap);
+        
+        ap = new AttributeParameters("A2");
+        ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
+        ap.setDeterminative(true);
+        onlyDeterministicAttributeParameterSet.add(ap);
 
         realisticAttributeParameterSet = new HashSet<AttributeParameters>();
 
@@ -122,6 +135,18 @@ public class EntityResolutionServiceDeterministicFactorsTest {
         ap.setAlgorithmClassName(JARO_DISTANCE_IMPL);
         ap.setDeterminative(true);
         oldTestsAttributeParameterSet.add(ap);
+    }
+    
+    @Test
+    public void testOnlyDeterministicAttributesScenario() throws Exception {
+        
+        List<ExternallyIdentifiableRecord> records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord(null, null, "Z", "record1"));
+        records.add(makeNewScenariosRecord("X", "Y", "Z", "record2"));
+        EntityResolutionResults results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), onlyDeterministicAttributeParameterSet);
+        List<ExternallyIdentifiableRecord> returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(2, returnRecords.size());
+        
     }
     
     @Test
