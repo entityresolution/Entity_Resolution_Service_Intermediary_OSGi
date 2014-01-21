@@ -22,7 +22,7 @@
 
 	<groupId>gov.nij.bundles.intermediaries</groupId>
 	<artifactId>Entity_Resolution_Service_Intermediary_OSGi</artifactId>
-	<version>1.0.2</version>
+	<version>1.0.3</version>
 	<packaging>bundle</packaging>
 
 	<name>NIJ :: Entity_Resolution_Service_Intermediary_OSGi :: Intermediary (OSGi)</name>
@@ -54,13 +54,7 @@
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
 			<version>1.9.0</version>
-			<scope>test</scope> <!-- 
-			<exclusions>
-				<exclusion>
-					<groupId>org.hamcrest</groupId>
-					<artifactId>hamcrest-core</artifactId>
-				</exclusion>
-			</exclusions> -->
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 	<build>

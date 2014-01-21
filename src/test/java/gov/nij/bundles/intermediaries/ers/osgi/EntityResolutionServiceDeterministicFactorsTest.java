@@ -138,6 +138,17 @@ public class EntityResolutionServiceDeterministicFactorsTest {
     }
     
     @Test
+    public void testMismatchedDeterministicAttributesScenario() throws Exception {
+        
+        List<ExternallyIdentifiableRecord> records = new ArrayList<ExternallyIdentifiableRecord>();
+        records.add(makeNewScenariosRecord(null, "Y", "Z", "record1"));
+        records.add(makeNewScenariosRecord("X", null, "Z", "record2"));
+        EntityResolutionResults results = service.resolveEntities(EntityResolutionConversionUtils.convertRecords(records), onlyDeterministicAttributeParameterSet);
+        List<ExternallyIdentifiableRecord> returnRecords = EntityResolutionConversionUtils.convertRecordWrappers(results.getRecords());
+        assertEquals(2, returnRecords.size());
+    }
+    
+    @Test
     public void testOnlyDeterministicAttributesScenario() throws Exception {
         
         List<ExternallyIdentifiableRecord> records = new ArrayList<ExternallyIdentifiableRecord>();

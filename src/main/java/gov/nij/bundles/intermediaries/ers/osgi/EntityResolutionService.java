@@ -245,36 +245,28 @@ public class EntityResolutionService {
         private int matchDeterministicAttributes(Record r1, Record r2) {
             Map<String, Attribute> r1attr = r1.getAttributes();
             Map<String, Attribute> r2attr = r2.getAttributes();
-            boolean r1AllNull = true;
-            boolean r2AllNull = true;
+            boolean r1r2PairsAllNull = true;
             for (String s1 : comparatorMap.keySet()) {
 
                 if (attributeIsDeterminative(s1)) {
+                    
                     LOG.debug("Evaluating deterministic attribute " + s1);
+                    
                     Attribute a1 = r1attr.get(s1);
                     boolean a1AllNull = attributeAllNull(a1);
                     Attribute a2 = r2attr.get(s1);
                     boolean a2AllNull = attributeAllNull(a2);
-
-                    if (!a1AllNull) {
-                        LOG.debug("Attribute a1=" + a1 + " is not all null");
-                        r1AllNull = false;
-                    }
-
-                    if (!a2AllNull) {
-                        LOG.debug("Attribute a2=" + a2 + " is not all null");
-                        r2AllNull = false;
-                    }
 
                     if (!(a1AllNull || a2AllNull)) {
                         if (!identical(a1, a2)) {
                             LOG.debug("Records do not match due to unequal, non-null deterministic attributes");
                             return NO_MATCH;
                         }
+                        r1r2PairsAllNull = false;
                     }
                 }
             }
-            return (r1AllNull || r2AllNull) ? MATCH_INDETERMINATE : MATCH;
+            return (r1r2PairsAllNull) ? MATCH_INDETERMINATE : MATCH;
         }
 
         private boolean attributeAllNull(Attribute a) {
