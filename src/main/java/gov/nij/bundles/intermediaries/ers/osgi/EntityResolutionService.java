@@ -47,8 +47,6 @@ public class EntityResolutionService {
 
     private static final Log LOG = LogFactory.getLog(EntityResolutionService.class);
 
-    private ERSMatcherMerger matcherMerger = new ERSMatcherMerger();
-
     /**
      * Resolve a set of entities.
      * 
@@ -84,6 +82,7 @@ public class EntityResolutionService {
 
         if (recordWrappers.size() <= recordLimit) {
 
+            ERSMatcherMerger matcherMerger = new ERSMatcherMerger();
             matcherMerger.init(attributeParameters);
             LOG.debug("In resolveEntities, recordWrappers=" + recordWrappers);
             Set<Record> inputRecords = new HashSet<Record>();
@@ -186,7 +185,6 @@ public class EntityResolutionService {
 
         public void init(Set<AttributeParameters> attributeParameters) throws Exception {
             this.attributeParameters = attributeParameters;
-            comparatorMap.clear();
             LOG.info("Initializing ERSMatcherMerger with parameters " + attributeParameters);
             for (AttributeParameters ap : attributeParameters) {
                 if (ap == null || ap.getAttributeName() == null || ap.getAlgorithmClassName() == null) {
